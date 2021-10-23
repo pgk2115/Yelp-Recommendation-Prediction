@@ -1,0 +1,92 @@
+---
+title: "Untitled"
+author: "Peter Kolodziej pgk2115"
+date: "4/30/2019"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(rmarkdown)
+library(knitr)
+library(Hmisc)
+library(DT)
+library(syuzhet)
+library(data.table)
+library(reticulate)
+library(glue)
+library(keras)
+import("pickle")
+import("keras")
+import("numpy")
+
+assignInNamespace("cedta.override", c(data.table:::cedta.override,"rmarkdown"), "data.table")
+
+
+opts_chunk$set(echo = FALSE, comment="", warning = FALSE, message = FALSE, tidy.opts=list(width.cutoff=55), tidy = TRUE)
+review<-fread("/Users/11kolop/Downloads/review_restaurants")
+
+```
+
+
+
+Sentiment Analysis
+=====================================  
+
+Row {data-height=500}
+-------------------------------------
+
+```{r}
+inputPanel(
+  selectInput(inputId="SS", label = " Star Level", choices = c(1:5), selected = c(1:5)[1]))
+
+
+renderPlot({
+d<-get_nrc_sentiment(review[review$stars==input$SS,]$text)
+td<-data.frame(t(d))
+td_new <- data.frame(rowSums(td))
+names(td_new)[1] <- "count"
+td_new <- cbind("sentiment" = rownames(td_new), td_new)
+rownames(td_new) <- NULL
+qplot(sentiment, data=td_new[1:8,], weight=count, geom="bar",fill=sentiment)+ggtitle("Sentiments")
+})
+```
+
+Review Prediction
+===================================
+
+
+Row {data-height=500}
+-------------------------------------
+
+```{r}
+textAreaInput("text", label = h3("Place Review Here"), width = '600px', height = '300px')
+actionButton("submit", "Submit")
+v <- reactiveValues()
+renderUI(v[["py_chunk"]])
+observeEvent(
+  input$submit,
+  {
+    var <- input$text
+py_code <- c(
+       "```{python, echo=F}",
+      "import pickle",
+      "from keras.models import load_model",
+      "from keras.preprocessing.sequence import pad_sequences",
+      "from keras.preprocessing.text import Tokenizer",
+      "import numpy as np",
+      "revi = str(r.var)",
+      "model = load_model('my_model.h5')",
+      "with open('tokenizer.pickle', 'rb') as handle:
+      tokenizer = pickle.load(handle)",
+      "revi = np.expand_dims(revi, axis=0)",
+      "revi = tokenizer.texts_to_sequences(revi)",
+      "revi = pad_sequences(revi,maxlen=200)",
+      "revi = model.predict([revi], batch_size=1, verbose = 0).argmax()+1",
+      "print(revi,'stars')",
+      "```"
+    )
+    v[["py_chunk"]] <-HTML(knit(text = py_code))})
+```
