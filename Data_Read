@@ -1,0 +1,34 @@
+---
+title: "ADS FINAL"
+author: "Peter Kolodziej pgk2115"
+date: "4/11/2019"
+output: html_document
+---
+
+```{r}
+library(ndjson)
+business<-stream_in("/Users/11kolop/Downloads/yelp_dataset/business.json", cls ="tbl")
+checkin<-stream_in("/Users/11kolop/Downloads/yelp_dataset/checkin.json",cls="tbl")
+photo<-stream_in("/Users/11kolop/Downloads/yelp_dataset/photo.json",cls="tbl")
+tip<-stream_in("/Users/11kolop/Downloads/yelp_dataset/tip.json",cls="tbl")
+user<-stream_in("/Users/11kolop/Downloads/yelp_dataset/user.json",cls="tbl")
+review<-stream_in("/Users/11kolop/Downloads/yelp_dataset/review.json",cls="tbl")
+```
+
+```{r}
+write.csv(business,"business.csv")
+write.csv(checkin,"checkin.csv")
+write.csv(photo,"photo.csv")
+write.csv(tip,"tip.csv")
+write.csv(user,"user.csv")
+write.csv(review,"review.csv")
+```
+
+```{r}
+library(ggmap)
+register_google(key="###")
+ggmap(get_googlemap(center=c(lon=mean(business$longitude),lat=mean(business$latitude)),zoom=4, scale=2,maptype ='hybrid',color = 'color')) +   
+     geom_point(aes(x = longitude, y = latitude), colour = "purple", data = business, alpha=0.3, size = 0.5) 
+sort(table(business$city),decreasing = T)[1:50]
+
+```
